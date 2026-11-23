@@ -27,3 +27,16 @@ test('the app falls back to the lf_ref cookie and attributes once', () => {
   assert.match(a, /localStorage\.setItem\('lf_ref_done', '1'\)/);
   assert.match(a, /referral\.hamoureliasse\.workers\.dev\/attribute/);
 });
+
+test('the affiliate program is visible: app tab, public page, site-wide link, click logging', () => {
+  const a = read('app.html'), aff = read('affiliate.html'), js = read('js/lf-attribution.js'), home = read('index.html');
+  assert.match(a, /data-page="affiliates"/);
+  assert.match(a, /case 'affiliates':/);
+  assert.match(a, /lf_after_auth/);
+  assert.match(aff, /id="public"/);
+  assert.doesNotMatch(aff, /Please open this from inside your LinkFinder account/);
+  assert.doesNotMatch(aff, /name="robots" content="noindex"/);
+  assert.match(js, /referral\.hamoureliasse\.workers\.dev\/r\//);
+  assert.match(js, /data-lf-affiliate-link/);
+  assert.match(home, /href="https:\/\/linkfinderai\.com\/affiliate" data-lf-affiliate-link="nav"/);
+});

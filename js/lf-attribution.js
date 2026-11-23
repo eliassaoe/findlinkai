@@ -347,6 +347,53 @@
     window.LFSegment = LFSegment;
 })();
 
+// Affiliate program (23 Nov 2026, owner: "people must easily see where the
+// affiliate program is"). Two things, on every page that loads this file:
+// 1. ?ref=CODE on ANY page (partners link to tool pages, not only the home
+//    page): keep it first-touch in the 90-day lf_ref cookie + localStorage, and
+//    log one click per code per browser session with the referral worker, so the
+//    partner's dashboard counts clicks. The app locks the attribution after signup.
+// 2. An "Affiliates" link in the site header menu and the footer.
+(function () {
+    try {
+        var ref = new URLSearchParams(location.search).get('ref');
+        if (ref && /^[a-z0-9]{4,32}$/i.test(ref)) {
+            if (!/(?:^|;\s*)lf_ref=/.test(document.cookie)) {
+                document.cookie = 'lf_ref=' + encodeURIComponent(ref) + '; max-age=' + (90 * 86400) + '; path=/; domain=.linkfinderai.com';
+            }
+            try { if (!localStorage.getItem('lf_ref')) localStorage.setItem('lf_ref', ref); } catch (e) {}
+            var seenKey = 'lf_ref_click_' + ref;
+            var seen = false;
+            try { seen = !!sessionStorage.getItem(seenKey); sessionStorage.setItem(seenKey, '1'); } catch (e) {}
+            if (!seen) { try { fetch('https://referral.hamoureliasse.workers.dev/r/' + encodeURIComponent(ref), { mode: 'no-cors', credentials: 'omit' }); } catch (e) {} }
+        }
+    } catch (e) {}
+    function addLinks() {
+        try {
+            if (document.querySelector('[data-lf-affiliate-link]')) return;
+            var href = 'https://linkfinderai.com/affiliate';
+            var nav = document.querySelector('nav.nav-menu, .nav-menu');
+            if (nav && !nav.querySelector('a[href*="/affiliate"]')) {
+                var a = document.createElement('a');
+                a.href = href; a.textContent = 'Affiliates'; a.setAttribute('data-lf-affiliate-link', 'nav');
+                nav.appendChild(a);
+            }
+            var foot = document.querySelector('footer');
+            if (foot && !foot.querySelector('a[href*="/affiliate"]')) {
+                var lists = foot.querySelectorAll('ul');
+                var b = document.createElement('a');
+                b.href = href; b.textContent = 'Affiliate program (earn 25%)'; b.setAttribute('data-lf-affiliate-link', 'footer');
+                if (lists.length) { var li = document.createElement('li'); li.appendChild(b); lists[0].appendChild(li); }
+                else { b.style.marginLeft = '12px'; foot.appendChild(b); }
+            }
+        } catch (e) {}
+    }
+    try {
+        if (/^\/(app|sign-up|log-in|confirmation-signup|affiliate)(\.html)?\/?$/.test(location.pathname)) return;
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addLinks); else addLinks();
+    } catch (e) {}
+})();
+
 // Black Friday 2026 banner (docs/black-friday-ltd-2026.md). Separate file so
 // the 258 pages that load this one get it without being edited; the banner
 // script stops itself after 1 Dec 2026, and this loader after that date too.

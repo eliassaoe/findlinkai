@@ -1140,6 +1140,7 @@ body.sp-has-pick #creditCost{display:none !important;}
             <a href="#" class="nav-tab" data-page="crmSync"><i class="fab fa-hubspot"></i> CRM Sync</a>
             <a href="#" class="nav-tab" data-page="integrations"><i class="fas fa-puzzle-piece"></i> Integrations</a>
             <a href="#" class="nav-tab" data-page="outreach"><i class="fas fa-paper-plane"></i> Outreach</a>
+            <a href="#" class="nav-tab" data-page="affiliates"><i class="fas fa-hand-holding-usd"></i> Affiliates <span style="font-size:0.7em;font-weight:700;color:#059669;background:#ecfdf5;border-radius:999px;padding:1px 6px;margin-left:2px">25%</span></a>
             <a href="#" class="nav-tab" data-page="history"><i class="fas fa-history"></i> History</a>
             <a href="#" class="nav-tab" data-page="account"><i class="fas fa-user"></i> Account</a>
         </div>
@@ -6064,6 +6065,7 @@ function navigateToPage(page){
         // app-integrations, not /integrations — the latter is the signed-out
         // landing page. A logged-in user should see what THEY have connected.
         case 'integrations': window.location.href=addGclid(`https://linkfinderai.com/app-integrations?token=${userToken}`); break;
+        case 'affiliates': try { posthog.capture('affiliate_nav_clicked', { source: 'app_nav' }); } catch(e) {} window.location.href = 'https://linkfinderai.com/affiliate' + (userToken ? '?token=' + encodeURIComponent(userToken) : ''); break;
         case 'outreach': openOutreach('nav'); document.querySelector('[data-page="outreach"]').classList.remove('active'); document.querySelector('[data-page="enrichment"]').classList.add('active'); break;
     }
 }
@@ -6606,6 +6608,8 @@ function checkAuth(){
     }
     // Not awaited: attribution must never delay the app rendering.
     lfAttributeReferral();
+    // Came from the public /affiliate page: send them back to get their link.
+    try { if (localStorage.getItem('lf_after_auth') === 'affiliate') { localStorage.removeItem('lf_after_auth'); setTimeout(function(){ window.location.href = 'https://linkfinderai.com/affiliate?token=' + encodeURIComponent(userToken); }, 800); } } catch(e) {}
     // India/Bangladesh/Nigeria get the full task-based earn-credits popup
     // auto-opened. Everyone else gets the corner G2 review nudge instead - but
     // both now get the "Get Free Credits" fab, so the credits panel is always
