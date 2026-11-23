@@ -24,3 +24,8 @@ test('banner is hidden on the deal and redeem pages and for past payers', () => 
 test('banner links to the deal page with its own utm_source', () => {
     assert.match(banner, /\/lifetime-deal\?utm_source=site_banner&utm_medium=banner&utm_campaign=bf2026/);
 });
+
+test('never on sign-up / log-in pages (owner, 23 Nov 2026: it broke the sign-up page)', () => {
+  const b = readFileSync(new URL('../js/lf-bf-banner.js', import.meta.url), 'utf8');
+  for (const p of ['sign-up', 'log-in', 'confirmation-signup']) assert.match(b, new RegExp('\\|' + p + '\\|'));
+});

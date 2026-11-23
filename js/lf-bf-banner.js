@@ -16,7 +16,8 @@
     var now = Date.now();
     if (!(now < END)) return;
     var path = location.pathname.replace(/\.html$/, '');
-    if (/^\/(lifetime-deal|redeem-code|redeem|account|account-beta|verify-email)\/?$/.test(path)) return;
+    // 23 Nov 2026 (owner): never on signup / login pages - it broke the sign-up layout.
+    if (/^\/(lifetime-deal|redeem-code|redeem|account|account-beta|verify-email|sign-up|signup|log-in|login|confirmation-signup|confirmation-login|reset-password|forgot-password)\/?$/.test(path)) return;
     // The deal page is English-only: no banner on the /fr/ /de/ /es/ tool pages (seo_2026_11/i18n).
     if (/^\/(fr|de|es)\//.test(path)) return;
     var DISMISS_KEY = 'lf_bf26_banner_dismissed';
