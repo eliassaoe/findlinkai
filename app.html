@@ -6187,7 +6187,11 @@ async function submitAiSdrRequest() {
 // first. The worker enforces the same rule server-side - this just avoids
 // sending a code we already know is not the one that will stick.
 function lfCaptureRef() {
-    const ref = new URLSearchParams(window.location.search).get('ref');
+    // ?ref= on this URL, else the lf_ref cookie the home page / sign-up page set
+    // (90 days, whole domain). The cookie is what carries an email/password
+    // signup, which never passes the code to the app in the URL.
+    let ref = new URLSearchParams(window.location.search).get('ref');
+    if (!ref) { try { if (!localStorage.getItem('lf_ref_done')) ref = decodeURIComponent((document.cookie.match(/(?:^|;\s*)lf_ref=([^;]+)/) || [])[1] || ''); } catch(e) { ref = ''; } }
     if (!ref) return;
     try {
         if (!localStorage.getItem('lf_ref')) {
@@ -6214,7 +6218,7 @@ async function lfAttributeReferral() {
         // Clear it once it has landed one way or the other, so an unknown or
         // self-referral code is not retried on every page load forever.
         if (data && (data.ok || data.reason)) {
-            try { localStorage.removeItem('lf_ref'); } catch(e) {}
+            try { localStorage.removeItem('lf_ref'); localStorage.setItem('lf_ref_done', '1'); } catch(e) {}
             if (data.ok && !data.already) {
                 try { posthog.capture('referral_attributed', { code: ref }); } catch(e) {}
             }

@@ -305,6 +305,23 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
   const WORKER_URL = 'https://linkfinderai-sign-up.hamoureliasse.workers.dev/';
   const urlParams = new URLSearchParams(window.location.search);
 
+  // Affiliate code (?ref=CODE, or the lf_ref cookie set by the home page). Kept in
+  // localStorage AND the cookie on page load, whichever signup path follows, so
+  // the app can lock the attribution after signup (lfAttributeReferral in
+  // app.html -> referral worker /attribute). Before 23 Nov 2026 only the Google
+  // button stored it, and confirmation-signup.html then deleted it: no referred
+  // signup was ever attributed (referral_attributions was empty).
+  (function () {
+    try {
+      const ref = urlParams.get('ref') || (document.cookie.match(/(?:^|;\s*)lf_ref=([^;]+)/) || [])[1];
+      if (!ref) return;
+      if (!localStorage.getItem('lf_ref')) localStorage.setItem('lf_ref', ref);
+      if (!/(?:^|;\s*)lf_ref=/.test(document.cookie)) {
+        document.cookie = 'lf_ref=' + encodeURIComponent(ref) + '; max-age=' + (90 * 86400) + '; path=/; domain=.linkfinderai.com';
+      }
+    } catch (e) {}
+  })();
+
   // Campaign gift code (?gift=<code>, e.g. from /100free). The Worker owns the
   // code -> credits table (workers/signup/worker.js, GIFT_CREDITS); this page only
   // carries the code. It is kept in localStorage so it survives the Google OAuth
