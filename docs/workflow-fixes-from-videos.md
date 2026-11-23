@@ -109,3 +109,12 @@ job's timeout, and the commit step merges rows instead of losing them to a push 
 
 `.github/workflows/api-smoke.yml` runs one call per public operation plus the error cases;
 run it after any change to the worker or the n8n API workflow.
+
+## 23 Nov 2026 — found while making the InfoStack sales-page screenshots (production app, test account)
+| Lookup | Input | Wrong output | Expected |
+| --- | --- | --- | --- |
+| `company_name_to_website` (app's own "Try a sample list") | LinkedIn | linkedin.cn | linkedin.com |
+| `company_name_to_website` (same sample) | Box | box.org | box.com |
+| `linkedin_post_to_reactions` (app, single lookup) | a public post URL | **nothing shown on screen**; the history row holds 98 people as `{link, title, snippet}` (Google-result shape) | a table of the people who reacted |
+
+The sample list is the first thing many new users run, so its two wrong rows are worth fixing first (prefer the `.com` result when the name is a global brand, or drop LinkedIn/Box from the sample). The reactions result is returned but not rendered: the n8n branch now answers in search-result shape, and the app's result renderer does not read `link/title/snippet`. Not fixed yet.
