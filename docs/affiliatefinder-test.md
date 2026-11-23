@@ -43,3 +43,8 @@ the monthly plan.
 - **Country block:** /sign-up refuses countries outside the allowlist, see
   `workers/signup/README.md`. We told them to say so if refused; the account then has to be
   created by hand. For a known affiliate with credits we chose, that is fine.
+- 23 Nov 13:00: the first affiliate was refused at sign-up (country not on the allowlist).
+  Account created by hand in `linkfinderai_users` (Gmail, 500 credits, email_verified
+  true, 16-char token like normal accounts). Login with Google works from any country:
+  the country rule only sits in the signup worker. He was told: 10 credits per email,
+  50 per phone (best on US/Canada profiles).
