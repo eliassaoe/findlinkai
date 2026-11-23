@@ -48,3 +48,12 @@ the monthly plan.
   true, 16-char token like normal accounts). Login with Google works from any country:
   the country rule only sits in the signup worker. He was told: 10 credits per email,
   50 per phone (best on US/Canada profiles).
+
+## 23 Nov 2026 (evening): Pro bought, wave 2 launched
+- Owner said go: trial ended early, **Pro monthly $99** charged on the card on file (annual $799 was pre-selected in the paywall; switched to monthly). Monthly Pro = **150 email credits / month** (resets the 23rd), not 200.
+- Full results list pulled through the app's own tRPC call (`affiliateResults.getAffiliateResults`, `offset`/`limit<=100`, `filters:{}`): **1,607 affiliates** (461 YouTube, 551 TikTok, 162 Instagram, 433 websites).
+- Saved by brand-fit score, skipping vendors/competitors (regex blocklist: Wiza, Saleshandy, Snov, lemlist, HeyReach, Apollo, ZoomInfo, Lusha, Evaboot…): `affiliateResults.saveAffiliate` + `emailFinder.startEmailResearch` per result. Credits are only charged when an email is found: 229 saved for 150 credits.
+- **Campaign "Wave 2 - 230 B2B creators & review sites"**: 227 leads, **147 with an email**, AI-written 4-step sequence (day 0/3/7/12), same offer as Test 1 (25% recurring, $500 cap, 30-day hold, PayPal, free test credits). Launched; first sends 24 Nov 9:00 Paris.
+- Bottleneck now = **sending capacity**: one inbox (owner's Gmail), 30 emails/day shared by both campaigns incl. follow-ups → ~588 emails ≈ 4 weeks. A second connected inbox doubles it.
+- "Add your own" in AffiliateFinder takes a URL and spends an AF enrichment credit; you cannot paste an email you found elsewhere. So emails found with LinkFinder for the remaining ~340 websites must be sent from Instantly/Explee, not AF.
+- 80 saved leads have no email (mostly TikTok/Instagram).
