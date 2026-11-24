@@ -249,3 +249,10 @@ Why: the keyword list had drifted into creator/newsletter/podcast/wedding/e-comm
 - **pulseofstrategy.com** (DR 45, ~18k/mo): said yes to a swap. Asked for: their "best B2B website visitor tracking tools" post → `/clearbit-alternative`, anchor "Clearbit alternatives". Ours to them on a relevant page once they agree.
 - **socialthink.io**: refused `/best-instagram-scrapers` ("not relevant"). Offered `/best-b2b-lead-generation-agencies` (anchor "SocialThink"), or their pick of page.
 - **postoria.io**: asked which price is right. The $49 Starter in the section we sent is the agency-only plan; the public pricing page starts at Professional $99/mo ($59/mo annual) and $25 packs. Told them to use the pricing page figures. **Do not quote $49 in sections for public articles.**
+
+### MentionAgent volume push (24 Nov 2026, ~23:45 Paris, owner: "extend keywords to reach 80 sent a day")
+Why: 452 keywords left, last 5 runs drafted 16/17/9/23/36 (≈49/day over 7 days vs 80 cap); the agent was running out of new prospects again.
+- Keywords 452 → **1,176**: "Suggest new" on ~30 B2B topics (contact data, prospecting, LinkedIn lead gen, cold email, CRM, sales intelligence, enrichment APIs, RevOps, recruiting/ATS, martech, ABM/intent, SaaS roundups, AI SDR, scraping, n8n/Make/Zapier, phone data, firmographics, Apollo/ZoomInfo/Lusha alternatives, outbound agencies, Chrome extensions, HubSpot/Salesforce, data quality) + ~140 hand-written (competitor alternatives, "how to find X email", Google Sheets enrichment, MCP, Europe/GDPR data, review/alternatives blogs).
+- Then removed 106 off-topic (creators, bloggers, newsletters, podcasts, Etsy/Shopify, photographers, real estate, side projects…) — the suggester keeps drifting there.
+- Autopilot frequency Daily → **Twice daily** (a short run gets a second pass the same day; still capped at 80 cold/day by warmup). Filters unchanged (1,000+ visits, DR 20+, B2B topics). Reply rule unchanged.
+- Check on 26–27 Nov: "Recent runs" drafts per day. If still < 80 with keywords left, the filters (DR 20 / 1,000 visits) are the limit, not keywords.
