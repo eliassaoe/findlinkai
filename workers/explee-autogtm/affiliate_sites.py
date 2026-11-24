@@ -31,7 +31,7 @@ TITLES = ["Founder", "Co-Founder", "Owner", "CEO", "Editor", "Editor in Chief",
           "Head of Partnerships", "Affiliate Manager", "Marketing Manager", "Publisher"]
 
 BRIEF = {
-    "language": "en",
+    "language": "en-US",
     "instructions": (
         "This is an affiliate recruitment email, not a sales pitch. The recipient runs a "
         "website that publishes content about B2B sales, lead generation, data enrichment or "
