@@ -117,3 +117,20 @@ To check (first Indian signups): the new `linkfinderai_users` row really has 0
 credits (n8n stores `startingCredits` as given — if it turns 0 into a default,
 the grant leaks), and `checkout_payment_success` from IN in PostHog. Re-check
 21 Dec: IN signups, IN payments, Dodo disputes/chargebacks from IN.
+
+## 24 Nov 2026: lifetime-deal buyers sign up from any country (owner)
+The live Worker refuses every country outside `ALLOWED_COUNTRIES`. Lifetime-deal buyers
+(forgoodcode's Instagram audience, Black Friday 27–30 Nov) need an account to buy, so
+`/lifetime-deal` now links to `/sign-up?intent=ltd`; `sign-up.html` and
+`confirmation-signup.html` post `intent: 'ltd'`; the app sends them back to
+`/lifetime-deal` after signup. The Worker needs these three edits (dashboard editor,
+`linkfinderai-sign-up`; the API PUT from the dashboard session is refused with a 403):
+
+1. `const { email, ..., gclid, gift } = body;` → add `, intent`, then on the next line
+   `const ltdIntent = intent === 'ltd';`
+2. `const startingCredits = PAID_ONLY_COUNTRIES.has(country) ? 0 : giftCode`
+   → `const startingCredits = (PAID_ONLY_COUNTRIES.has(country) || (ltdIntent && isBlockedCountry(country))) ? 0 : giftCode`
+3. `if (isBlockedCountry(country)) {` → `if (isBlockedCountry(country) && !ltdIntent) {`
+
+Outside the allowlist an ltd signup starts at **0 credits**, so `intent=ltd` is worthless
+to a farm; every other rule (disposable, gmail→Google, per-IP, per-domain) still applies.

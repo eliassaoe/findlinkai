@@ -322,6 +322,15 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
     } catch (e) {}
   })();
 
+  // Lifetime-deal buyers (?intent=ltd, or lf_intent set by /lifetime-deal): the
+  // signup Worker lets them in from any country, at 0 free credits outside its
+  // allowlist, so they can buy the plan. Kept across the Google redirect.
+  const SIGNUP_INTENT = (function () {
+    const fromUrl = (urlParams.get('intent') || '').trim().toLowerCase();
+    if (fromUrl === 'ltd') { try { localStorage.setItem('lf_intent', 'ltd'); } catch (e) {} return 'ltd'; }
+    try { return localStorage.getItem('lf_intent') === 'ltd' ? 'ltd' : null; } catch (e) { return null; }
+  })();
+
   // Campaign gift code (?gift=<code>, e.g. from /100free). The Worker owns the
   // code -> credits table (workers/signup/worker.js, GIFT_CREDITS); this page only
   // carries the code. It is kept in localStorage so it survives the Google OAuth
@@ -538,7 +547,8 @@ button#submitButton:disabled{opacity:0.6;cursor:not-allowed;}
           fbc:   getFbc()               || null,
           fbp:   getFbp()               || null,
           gclid: urlParams.get('gclid') || localStorage.getItem('gclid') || null,
-          gift:  GIFT_CODE || null
+          gift:  GIFT_CODE || null,
+          intent: SIGNUP_INTENT
         })
       });
 
