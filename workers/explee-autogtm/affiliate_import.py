@@ -104,7 +104,7 @@ def main(argv=None):
                                    followup_instructions=BRIEF["followup_instructions"],
                                    language=BRIEF["language"])
     except ExpleeError as err:
-        print("import refused: HTTP {} {}".format(err.status, str(err)[:200]))
+        print("import refused: HTTP {} {}".format(err.status, str(err)[:1500]))
         return 1
     print("import task: " + re.sub(r"[\w.+-]+@[\w-]+\.[\w.]+", "<email>", json.dumps(task, default=str))[:600])
     task_id = first_of(task, "task_id", "id")
