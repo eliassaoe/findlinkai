@@ -75,3 +75,10 @@ In the sync path, `const text = await response.text()` is declared inside the `t
 
 ### Bug: `company_name_to_email` given a domain returns another company ~40% of the time
 On these 308 sites, 111 of 280 emails were on an unrelated domain (b2bpowerhour.com → @bamboohr.com, damgun.com → @dunkinbrands.com, ageofai.tools → @zerobounce.net). The lookup treats the input as a name and matches look-alikes. When the input is a domain, results on another domain should be discarded (or the domain searched directly). Logged also in `docs/workflow-fixes-from-videos.md`.
+
+## 24 Nov 2026, evening: inbox replies answered
+
+- Sandeep Sharma (asked for details): full program terms sent + signup link, test credits on signup.
+- Work-Management Team (paid content, link swap only above DR 70): declined paid, offered the affiliate program.
+- Fahim Joharder / FahimAI ($1,500 sponsored review, 204k audience): declined paid, offered the affiliate program + test credits. Status "Negotiating".
+- Inbox at 0 "Needs reply".
