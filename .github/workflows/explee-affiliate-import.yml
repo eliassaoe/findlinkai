@@ -1,0 +1,43 @@
+name: Explee - affiliate leads import
+
+# Leads that already have an email -> a new AutoGTM campaign in project 37934
+# (affiliate brief), created Not started. See workers/explee-autogtm/affiliate_import.py.
+# The leads are read from the dispatch payload file by the script itself: never
+# put the input in env or in the run script, or GitHub prints it in the log.
+on:
+  workflow_dispatch:
+    inputs:
+      leads_b64:
+        description: 'base64(gzip(JSON list of {email, company_domain}))'
+        type: string
+        required: true
+      apply:
+        description: 'Import (false = dry run)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: workers/explee-autogtm
+    env:
+      EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
+      APPLY: ${{ inputs.apply }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run
+        run: |
+          if [ "$APPLY" = "true" ]; then
+            python3 affiliate_import.py --event "$GITHUB_EVENT_PATH" --apply
+          else
+            python3 affiliate_import.py --event "$GITHUB_EVENT_PATH"
+          fi
