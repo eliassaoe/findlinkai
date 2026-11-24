@@ -37,7 +37,7 @@ BRIEF = {
         "website that publishes content about B2B sales, lead generation, data enrichment or "
         "AI tools (listicles, reviews, 'alternatives' pages). Open with one specific line "
         "about their site and the kind of tools they cover. Then: LinkFinder AI "
-        "(linkfinderai.com) turns a LinkedIn URL, a name + company, or a whole CSV into "
+        "turns a LinkedIn URL, a name + company, or a whole CSV into "
         "verified work emails and phone numbers. We would like them as an affiliate: 25% of "
         "every payment, recurring on every renewal, for every customer they send, up to $500 "
         "per referred customer; 90-day cookie; commission confirmed 30 days after each "
@@ -49,8 +49,8 @@ BRIEF = {
         "about their site or traffic."),
     "followup_instructions": (
         "Short, friendly follow-ups (under 60 words). Follow-up 1: offer to send free test "
-        "credits right away so they can try it on their own list, and give the program page: "
-        "https://linkfinderai.com/affiliate . Follow-up 2: mention one "
+        "credits right away so they can try it on their own list, and offer to send the affiliate signup link if they reply. Never put a URL in the email. "
+        "Follow-up 2: mention one "
         "concrete angle for their content (e.g. LinkFinder AI as a cheaper alternative in a "
         "lead-data or email-finder roundup) and the 25% recurring commission. Last one: "
         "close the loop politely. Never invent facts."),
