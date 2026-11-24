@@ -122,7 +122,7 @@ def main(argv=None):
     print("import status payload: " + re.sub(r"[\w.+-]+@[\w-]+\.[\w.]+", "<email>",
                                              json.dumps(got, default=str))[:1500])
     result = first_of(got, "result", default={})
-    print("campaign {} created (Not started), {} leads submitted".format(
+    print("campaign {} created, {} leads submitted (imported campaigns start Active)".format(
         first_of(result, "campaign_id", default="?"), len(leads)))
     return 0
 

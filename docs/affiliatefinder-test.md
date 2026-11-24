@@ -65,3 +65,13 @@ the monthly plan.
 
 ### Bug found: API worker `linkedfinderapiaccess` turns 401/403 into a 500
 In the sync path, `const text = await response.text()` is declared inside the `try` block, then `text.slice(0, 500)` is used outside it in the `if (response.status === 403 || 401)` log line → `ReferenceError: text is not defined` → the caller gets 500 *Internal server error / text is not defined* instead of the real 401/403 (bad key, no credits). Seen 23 Nov on the smoke test: even the "wrong key" case returns 500. Fix: declare `let text = ''` before the `try`. Also, our own key (GitHub secret `LINKFINDER_API_KEY`, used by the MCP server and the smoke test) is now refused upstream; it passed on 13 Nov. Check which account it belongs to and its credits.
+
+### 24 Nov 2026: the remaining websites are in Explee — campaign 488202 (project 30475)
+- Project 37934 (linkfinderai-outbound) no longer exists for our key; owner: put it in the LinkFinder AI project → **30475**, campaign *"Affiliates - B2B tool review sites (AffiliateFinder)"*, id **488202**. Imported campaigns start **Active** (not "Not started").
+- Emails found with LinkFinder itself (app, bulk `company_name_to_email` on the 308 domains, test account): 280 answers, **only 169 on the site's own domain** (see bug below); 3 role addresses dropped (copyright@, newsletter@, a "flast@" placeholder) → 166 sent to Explee, **162 imported**, 4 refused (country not allowed).
+- Import path: `explee-affiliate-import.yml` + `affiliate_import.py`. The leads go in the dispatch payload and are read from `$GITHUB_EVENT_PATH`, never echoed (the repo is public).
+- Explee import rules learned the hard way: language must be `en-US` (not `en`); **no URL anywhere** in the first email or follow-up instructions; every lead needs `first_name`, `last_name`, `job_title` (role addresses get "there" → "Hi there", site name as last name, "Website team" as title); the brief's sample email goes through content moderation (one attempt was refused, the next passed).
+- Booking link of the campaign set to Custom → `https://linkfinderai.com/affiliate` (the project default is the outbound-offer Calendly).
+
+### Bug: `company_name_to_email` given a domain returns another company ~40% of the time
+On these 308 sites, 111 of 280 emails were on an unrelated domain (b2bpowerhour.com → @bamboohr.com, damgun.com → @dunkinbrands.com, ageofai.tools → @zerobounce.net). The lookup treats the input as a name and matches look-alikes. When the input is a domain, results on another domain should be discarded (or the domain searched directly). Logged also in `docs/workflow-fixes-from-videos.md`.

@@ -118,3 +118,4 @@ run it after any change to the worker or the n8n API workflow.
 | `linkedin_post_to_reactions` (app, single lookup) | a public post URL | **nothing shown on screen**; the history row holds 98 people as `{link, title, snippet}` (Google-result shape) | a table of the people who reacted |
 
 The sample list is the first thing many new users run, so its two wrong rows are worth fixing first (prefer the `.com` result when the name is a global brand, or drop LinkedIn/Box from the sample). The reactions result is returned but not rendered: the n8n branch now answers in search-result shape, and the app's result renderer does not read `link/title/snippet`. Not fixed yet.
+| `company_name_to_email` | a bare domain (308 tool-review sites, 24 Nov) | 111 of 280 emails on an unrelated company's domain (e.g. damgun.com → @dunkinbrands.com) | an address on that domain, or "not found" |
