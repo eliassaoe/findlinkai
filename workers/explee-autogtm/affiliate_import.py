@@ -58,10 +58,18 @@ def main(argv=None):
     print("{} valid unique leads, project {}".format(len(leads), PROJECT))
     if not leads:
         return 1
+    api = Explee()
+    try:
+        got = api.projects()
+        rows = got if isinstance(got, list) else first_of(got, "projects", "items", "results", "data", default=[])
+        print("projects visible to this key: " + ", ".join(
+            "{} {}".format(first_of(p, "id", "project_id", default="?"),
+                           first_of(p, "name", "domain", "website", default="")) for p in rows or []))
+    except ExpleeError as err:
+        print("projects list failed: HTTP {}".format(err.status))
     if not args.apply:
         print("DRY RUN - add --apply")
         return 0
-    api = Explee()
     try:
         task = api.import_campaign(PROJECT, args.name, leads,
                                    instructions=BRIEF["instructions"],
