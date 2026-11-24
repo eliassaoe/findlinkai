@@ -69,7 +69,13 @@ def main(argv=None):
     except ExpleeError as err:
         print("projects list failed: HTTP {}".format(err.status))
     try:
-        for c in api.campaigns(args.project) or []:
+        allc = api.campaigns(args.project) or []
+        print("{} campaigns; last 4: {}".format(len(allc), " ; ".join(
+            "{} {} {}".format(first_of(c, "id", "campaign_id", default="?"),
+                              str(first_of(c, "name", default=""))[:50],
+                              first_of(c, "status", default="?"))
+            for c in sorted(allc, key=lambda c: -int(first_of(c, "id", "campaign_id", default=0) or 0))[:4])))
+        for c in allc:
             name = str(first_of(c, "name", "campaign_name", default=""))
             if "ffiliat" in name:
                 print("existing: {} | {} | status {} | leads {}".format(
