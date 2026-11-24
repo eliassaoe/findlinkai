@@ -244,3 +244,8 @@ Why: the keyword list had drifted into creator/newsletter/podcast/wedding/e-comm
 - **hirebasis.com**: asked $75 or swap → answered swap only, no fees; offered to place ours first.
 - **socialthink.io**: wants a blog page and brand anchor "SocialThink" → proposed `/best-instagram-scrapers` (anchor "SocialThink"); ours in one of their influencer / creator-economy posts → homepage.
 - Archived: sfapps.info ($250), ai-tutor.ai ($1,000 review, off-topic), wpmayor.com (paid, WordPress), featurebase.app (auto survey), europeanmartech.eu (~100 visits).
+
+## 24 Nov 2026 (morning)
+- **pulseofstrategy.com** (DR 45, ~18k/mo): said yes to a swap. Asked for: their "best B2B website visitor tracking tools" post → `/clearbit-alternative`, anchor "Clearbit alternatives". Ours to them on a relevant page once they agree.
+- **socialthink.io**: refused `/best-instagram-scrapers` ("not relevant"). Offered `/best-b2b-lead-generation-agencies` (anchor "SocialThink"), or their pick of page.
+- **postoria.io**: asked which price is right. The $49 Starter in the section we sent is the agency-only plan; the public pricing page starts at Professional $99/mo ($59/mo annual) and $25 packs. Told them to use the pricing page figures. **Do not quote $49 in sections for public articles.**
