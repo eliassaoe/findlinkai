@@ -25,6 +25,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from explee import Explee, ExpleeError, first_of  # noqa: E402
 from affiliate_sites import BRIEF, PROJECT  # noqa: E402
 
+# Role addresses get "there" as first name, so the email opens "Hi there".
+GENERIC = set("""info contact hello support admin team sales help hi hey in over reach pr setup
+enquiry enquiries editorial content business services dev tips us affiliate presse contato
+bonjour hola uscontact saas founder houston billie newsletter copyright office mail""".split())
+
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[a-z]{2,}$", re.I)
 
 
@@ -38,11 +43,17 @@ def load_leads(event_path):
         if not EMAIL.match(email) or email in seen:
             continue
         seen.add(email)
+        domain = row.get("company_domain") or email.split("@")[1]
+        local = email.split("@")[0]
+        first = row.get("first_name") or (local.capitalize()
+                                          if local.isalpha() and 3 <= len(local) <= 9
+                                          and local not in GENERIC else "there")
+        site = domain.split(".")[0].replace("-", " ").title()
         leads.append({"email": email,
-                      "first_name": row.get("first_name") or "",
-                      "last_name": "",
-                      "company_domain": row.get("company_domain") or email.split("@")[1],
-                      "job_title": "",
+                      "first_name": first,
+                      "last_name": site,
+                      "company_domain": domain,
+                      "job_title": "Website team",
                       "linkedin_url": ""})
     return leads
 

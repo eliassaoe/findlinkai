@@ -44,7 +44,8 @@ BRIEF = {
         "payment, paid monthly by PayPal once they are owed $50; a dashboard with clicks, "
         "signups and earnings. We give free credits so they can test LinkFinder AI before "
         "writing about it. No link in this first email. Ask one easy "
-        "question: would they be open to adding LinkFinder AI to a relevant page? Plain text, "
+        "question: would they be open to adding LinkFinder AI to a relevant page? When the first name is 'there', open with 'Hi there'; never mention the "
+        "recipient's job title. Plain text, "
         "under 120 words, no hype, never 'simply', 'just' or 'easily'. Never invent facts "
         "about their site or traffic."),
     "followup_instructions": (
