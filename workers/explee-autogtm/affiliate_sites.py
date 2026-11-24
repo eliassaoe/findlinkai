@@ -43,13 +43,14 @@ BRIEF = {
         "per referred customer; 90-day cookie; commission confirmed 30 days after each "
         "payment, paid monthly by PayPal once they are owed $50; a dashboard with clicks, "
         "signups and earnings. We give free credits so they can test LinkFinder AI before "
-        "writing about it. Program page: https://linkfinderai.com/affiliate . Ask one easy "
+        "writing about it. No link in this first email. Ask one easy "
         "question: would they be open to adding LinkFinder AI to a relevant page? Plain text, "
         "under 120 words, no hype, never 'simply', 'just' or 'easily'. Never invent facts "
         "about their site or traffic."),
     "followup_instructions": (
         "Short, friendly follow-ups (under 60 words). Follow-up 1: offer to send free test "
-        "credits right away so they can try it on their own list. Follow-up 2: mention one "
+        "credits right away so they can try it on their own list, and give the program page: "
+        "https://linkfinderai.com/affiliate . Follow-up 2: mention one "
         "concrete angle for their content (e.g. LinkFinder AI as a cheaper alternative in a "
         "lead-data or email-finder roundup) and the 25% recurring commission. Last one: "
         "close the loop politely. Never invent facts."),
