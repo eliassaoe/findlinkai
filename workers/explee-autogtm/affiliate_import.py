@@ -95,6 +95,7 @@ def main(argv=None):
     except ExpleeError as err:
         print("import refused: HTTP {} {}".format(err.status, str(err)[:200]))
         return 1
+    print("import task: " + re.sub(r"[\w.+-]+@[\w-]+\.[\w.]+", "<email>", json.dumps(task, default=str))[:600])
     task_id = first_of(task, "task_id", "id")
     status, got = "pending", {}
     for _ in range(120):
@@ -107,6 +108,8 @@ def main(argv=None):
     if status != "completed":
         print("import {}: {}".format(status, str(first_of(got, "error", default="?"))[:200]))
         return 1
+    print("import status payload: " + re.sub(r"[\w.+-]+@[\w-]+\.[\w.]+", "<email>",
+                                             json.dumps(got, default=str))[:1500])
     result = first_of(got, "result", default={})
     print("campaign {} created (Not started), {} leads submitted".format(
         first_of(result, "campaign_id", default="?"), len(leads)))
