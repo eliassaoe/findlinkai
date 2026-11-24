@@ -52,10 +52,11 @@ def main(argv=None):
     ap.add_argument("--event", required=True)
     ap.add_argument("--name", default="Affiliates - B2B tool review sites (AffiliateFinder)")
     ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--project", type=int, default=PROJECT)
     args = ap.parse_args(argv)
 
     leads = load_leads(args.event)
-    print("{} valid unique leads, project {}".format(len(leads), PROJECT))
+    print("{} valid unique leads, project {}".format(len(leads), args.project))
     if not leads:
         return 1
     api = Explee()
@@ -71,7 +72,7 @@ def main(argv=None):
         print("DRY RUN - add --apply")
         return 0
     try:
-        task = api.import_campaign(PROJECT, args.name, leads,
+        task = api.import_campaign(args.project, args.name, leads,
                                    instructions=BRIEF["instructions"],
                                    followup_instructions=BRIEF["followup_instructions"],
                                    language=BRIEF["language"])

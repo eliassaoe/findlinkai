@@ -11,6 +11,10 @@ on:
         description: 'base64(gzip(JSON list of {email, company_domain}))'
         type: string
         required: true
+      project:
+        description: 'Explee project id (37934 is gone; 30475 = linkfinderai.com)'
+        type: string
+        default: '30475'
       apply:
         description: 'Import (false = dry run)'
         type: boolean
@@ -29,6 +33,7 @@ jobs:
     env:
       EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
       APPLY: ${{ inputs.apply }}
+      PROJECT: ${{ inputs.project }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,7 +42,7 @@ jobs:
       - name: Run
         run: |
           if [ "$APPLY" = "true" ]; then
-            python3 affiliate_import.py --event "$GITHUB_EVENT_PATH" --apply
+            python3 affiliate_import.py --event "$GITHUB_EVENT_PATH" --project "$PROJECT" --apply
           else
-            python3 affiliate_import.py --event "$GITHUB_EVENT_PATH"
+            python3 affiliate_import.py --event "$GITHUB_EVENT_PATH" --project "$PROJECT"
           fi
