@@ -68,6 +68,16 @@ def main(argv=None):
                            first_of(p, "name", "domain", "website", default="")) for p in rows or []))
     except ExpleeError as err:
         print("projects list failed: HTTP {}".format(err.status))
+    try:
+        for c in api.campaigns(args.project) or []:
+            name = str(first_of(c, "name", "campaign_name", default=""))
+            if "ffiliat" in name:
+                print("existing: {} | {} | status {} | leads {}".format(
+                    first_of(c, "id", "campaign_id", "segment_id", default="?"), name,
+                    first_of(c, "status", default="?"),
+                    first_of(c, "leads_count", "total_leads", "pool_total", default="?")))
+    except ExpleeError as err:
+        print("campaign list failed: HTTP {}".format(err.status))
     if not args.apply:
         print("DRY RUN - add --apply")
         return 0
