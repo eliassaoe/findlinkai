@@ -74,4 +74,7 @@ and remove the test account's lifetime allowance if needed.
   "LinkFinder LTD: Codes, Guarantee and Dates" (codes in the body). Cary needs them to test checkout by Fri 27 Nov.
 - After Cary tests: reset the two test codes the same way as `infostack-test` above.
 - Cost note: 25,000 credits/month for $399 once (we keep ~50%) is below our own lifetime Max ($599 for 25,000),
-  and `ltd_monthly_topup` rolls unused credits over (see Known gap).
+  The live `ltd_monthly_topup` tops 25,000 accounts back UP to 25,000 (no rollover); 12,000 accounts get +12,000 (rollover).
+- Tested 25 Nov in rolled-back transactions: both test codes and a real $199 code redeem (12,000 / 25,000 credits,
+  monthly allowance set), a used code is refused (`already_redeemed`), a month later the topup gives 199 → +12,000
+  and 399 → back to 25,000. `/redeem-code?code=` prefills LFIS codes. Nothing kept: all codes still `available`.
