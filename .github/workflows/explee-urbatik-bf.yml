@@ -1,0 +1,34 @@
+name: Explee - Urbatik Black Friday offer
+
+# Everyone who replied to a creha.fr (Urbatik) email gets "first dossier free until
+# 1 Dec" as a new imported campaign in project 61157. Counts only in the log.
+# See workers/explee-autogtm/urbatik_bf_offer.py.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Import the campaign (false = dry run)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: workers/explee-autogtm
+    env:
+      EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
+      APPLY: ${{ inputs.apply }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run
+        run: |
+          if [ "$APPLY" = "true" ]; then python3 urbatik_bf_offer.py --apply; else python3 urbatik_bf_offer.py; fi
