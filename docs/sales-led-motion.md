@@ -177,3 +177,12 @@ this. What to watch, in order:
 If the sales-tier band converts at tool-page rates (~1%) after a few thousand
 impressions, the honest move is to cut it back to `/pricing`, the API pages and
 the comparison pages, and leave the rest self-serve. The config is one file.
+
+## 25 Nov 2026 — campaign "Agences ads et media buying" (Explee 30475, segment 496764)
+Owner: find more clients like Prescient Studio (paid-ads agency, client of the done-for-you appointment offer,
+200 € per held meeting, video `/avant-votre-appel`). Created in Explee: FR/BE/LU, ads & media-buying agencies
+that close themselves, French, offer = held meetings only, video link only in follow-ups. Examples: Prescient, Elorion.
+Started 25 Nov ~14:30 (agent researching). **Nothing sends while the project budget is $0/day**, and LinkedIn
+stays off until the owner connects his LinkedIn account in Explee → Channels.
+Existing ads agencies among the hot leads (Elorion, Digitori, AntheDesign, Globe Créateur) can't get another
+Explee reply (429 `reply_rate_limited`, or unsubscribed): phone them.
