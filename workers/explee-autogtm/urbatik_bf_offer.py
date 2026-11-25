@@ -75,9 +75,75 @@ def lead_of(row):
             "linkedin_url": ""}
 
 
+REPLY = """Bonjour{name},
+
+Pour le Black Friday, nous vous offrons votre premier dossier : déclaration préalable ou permis de construire, préparé gratuitement et prêt à déposer en mairie en 72 h.
+
+Pour en profiter, répondez à cet email avec l'adresse du chantier, le type de travaux et 2 ou 3 photos.
+
+Offre valable jusqu'au lundi 1er décembre, un dossier offert par entreprise.
+
+{sig}"""
+
+
+def _parse_ts(value):
+    from datetime import datetime, timezone
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+
+
+def reply_all(api, rows, apply):
+    """The offer as a reply in each thread (Explee dedupes imports against the project,
+    so a new campaign reaches nobody). Skips anyone we already wrote to in the last
+    24 h, and Explee itself refuses a 4th reply after the lead's last message."""
+    from datetime import datetime, timedelta, timezone
+    now, sent, stats = datetime.now(timezone.utc), set(), Counter()
+    for r in rows:
+        if intent_of(r) in SKIP or first_of(r, "erased", default=False):
+            stats["skipped_intent"] += 1
+            continue
+        email = str(first_of(r, "email", default="") or "").lower()
+        if not EMAIL.match(email) or email in sent:
+            stats["skipped_dup_or_invalid"] += 1
+            continue
+        if now - _parse_ts(first_of(r, "latest_sent_at", default="")) < timedelta(hours=24):
+            stats["skipped_written_today"] += 1
+            continue
+        cid, pid = first_of(r, "campaign_id"), first_of(r, "person_id")
+        sig = "Urbatik"
+        try:
+            th = api.thread(cid, pid)
+            msgs = first_of(th, "messages", "thread", "items", default=th) or []
+            mine = [m for m in msgs if isinstance(m, dict) and str(first_of(
+                m, "msg_type", "type", "direction", default="")).lower() in ("sent", "outbound", "out")]
+            if mine:
+                sig = str(first_of(mine[-1], "from_first_name", "sender_first_name",
+                                   default="") or "Urbatik")
+        except ExpleeError:
+            stats["thread_unreadable"] += 1
+        first = str(first_of(r, "name", default="") or "").split(" ")[0].title()
+        text = REPLY.format(name=(" " + first) if first.isalpha() and len(first) > 1 else "", sig=sig)
+        if not apply:
+            stats["would_send"] += 1
+            continue
+        try:
+            api.reply(cid, pid, text)
+            stats["sent"] += 1
+            sent.add(email)
+        except ExpleeError as err:
+            stats["refused_{}".format(err.status)] += 1
+        time.sleep(1)
+    print("reply mode ({}): {}".format("APPLY" if apply else "dry run", dict(stats)))
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--reply", action="store_true",
+                    help="send the offer as a reply in each existing thread instead of importing")
     args = ap.parse_args(argv)
     api = Explee()
 
@@ -109,6 +175,8 @@ def main(argv=None):
         seen.add(lead["email"])
         leads.append(lead)
     print("{} leads to import".format(len(leads)))
+    if args.reply:
+        return reply_all(api, rows, args.apply)
     if not args.apply:
         print("DRY RUN - add --apply")
         return 0

@@ -6,8 +6,12 @@ name: Explee - Urbatik Black Friday offer
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'import (new campaign) or reply (in each thread)'
+        type: string
+        default: 'reply'
       apply:
-        description: 'Import the campaign (false = dry run)'
+        description: 'Send / import (false = dry run)'
         type: boolean
         default: false
 
@@ -24,6 +28,7 @@ jobs:
     env:
       EXPLEE_API_KEY: ${{ secrets.EXPLEE_API_KEY }}
       APPLY: ${{ inputs.apply }}
+      MODE: ${{ inputs.mode }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,4 +36,5 @@ jobs:
           python-version: '3.11'
       - name: Run
         run: |
-          if [ "$APPLY" = "true" ]; then python3 urbatik_bf_offer.py --apply; else python3 urbatik_bf_offer.py; fi
+          EXTRA=""; [ "$MODE" = "reply" ] && EXTRA="--reply"
+          if [ "$APPLY" = "true" ]; then python3 urbatik_bf_offer.py --apply $EXTRA; else python3 urbatik_bf_offer.py $EXTRA; fi
