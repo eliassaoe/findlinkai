@@ -31,7 +31,7 @@ SKIP = {"not_interested", "recipient_gone", "unsubscribed", "self_reply", "email
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[a-z]{2,}$", re.I)
 
 BRIEF = {
-    "language": "fr-FR",
+    "language": "fr",
     "instructions": (
         "Offre Black Friday d'Urbatik. Le destinataire nous a déjà répondu il y a quelques "
         "semaines au sujet des dossiers de mairie : le rappeler en une phrase, sans inventer "
