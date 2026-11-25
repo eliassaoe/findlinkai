@@ -256,3 +256,7 @@ Why: 452 keywords left, last 5 runs drafted 16/17/9/23/36 (≈49/day over 7 days
 - Then removed 106 off-topic (creators, bloggers, newsletters, podcasts, Etsy/Shopify, photographers, real estate, side projects…) — the suggester keeps drifting there.
 - Autopilot frequency Daily → **Twice daily** (a short run gets a second pass the same day; still capped at 80 cold/day by warmup). Filters unchanged (1,000+ visits, DR 20+, B2B topics). Reply rule unchanged.
 - Check on 26–27 Nov: "Recent runs" drafts per day. If still < 80 with keywords left, the filters (DR 20 / 1,000 visits) are the limit, not keywords.
+
+## 25 Nov 2026
+- **socialthink.io**: Kristina asked us to go first. Our side placed: "SocialThink" → socialthink.io/ (dofollow) on `/how-to-generate-leads-on-linkedin`, Step 3 (source: `seo_2026_11/pages_c_leads.py`). Verified live, sent her the URL and asked for ours: B2B vs B2C post → `/wiza-alternative`, anchor "wiza alternatives". If theirs isn't live by ~2 Dec, nudge; remove ours if they never place it.
+- kumospace.com: autoresponder, archived.

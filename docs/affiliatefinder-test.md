@@ -82,3 +82,8 @@ On these 308 sites, 111 of 280 emails were on an unrelated domain (b2bpowerhour.
 - Work-Management Team (paid content, link swap only above DR 70): declined paid, offered the affiliate program.
 - Fahim Joharder / FahimAI ($1,500 sponsored review, 204k audience): declined paid, offered the affiliate program + test credits. Status "Negotiating".
 - Inbox at 0 "Needs reply".
+
+## 25 Nov 2026
+- AI Made For (Apollo review, Outreach vs Salesloft vs Apollo): affiliate only with paid placement ($350–$900). Declined paid, affiliate left open.
+- Fahim Joharder: sponsored only. Closed politely.
+- Work-Management Team: "will look at the program". Acknowledged.
