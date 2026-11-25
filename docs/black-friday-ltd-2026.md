@@ -536,3 +536,15 @@ Verdict: **nothing is a must-buy**. Our bottleneck is conversion, not leads, and
 - Only cheap candidates: Radar Lab $99/yr (67% off; ranks 4,700 newsletters, shows which ones competitors sponsor; only useful if we keep buying newsletter slots), Citation Rocket lifetime $59 (one-off AI-search audit; Semrush already shows AI visibility).
 - Too expensive for ~$400 MRR: AffiliateFinder.ai $799/yr (done-for-you 100 affiliates), Emelia €259+/yr, Sorank $588+/yr, Scrap.io $354/yr (a competitor's data).
 - Duplicates what we have: Snov.io, SalesHandy, Reply, SmartReach, Warmy/TrulyInbox, Bearconnect, LeadMerlin. Nothing for Reddit marketing on either list.
+
+## Black Friday deal swap with link-exchange partners (25 Nov 2026, owner's call)
+Owner, 25 Nov: "the best is the Black Friday deal" — partners who already placed our link get a deal swap:
+we feature their Black Friday deal to LinkFinder AI users (on our Black Friday page + in our Black Friday
+email), they share our lifetime deal (from $149 once, 2,500 credits/month) with their own tracked link
+`/lifetime-deal?utm_source=<partner>&utm_campaign=bf2026` and 25% of the sales it brings.
+Sent from MentionAgent, in each existing thread, to the 17 partners with a live link and real traffic:
+saleshandy, adaptlypost, pixteller, chasedimond, apollotechnical, outx.ai, teamed.global, fastlancer,
+instantdm, saascrmreview, outlierkit, ecomify, aureliatalent, laratranslate, nudgify, oneup.today, ourcodeworld.
+Skipped: sites under ~200 visits/month, mailmodo (paid), work-management (archived).
+**When a partner says yes:** add their deal to a "Deals from our partners" section on `/lifetime-deal`
+and to the Black Friday email, create their utm link, send them our copy.
