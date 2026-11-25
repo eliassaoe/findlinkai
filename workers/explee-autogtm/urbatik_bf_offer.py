@@ -28,6 +28,7 @@ PROJECT = 61157
 NAME = "Black Friday : 1er dossier offert (contacts qui ont répondu)"
 SKIP = {"not_interested", "recipient_gone", "unsubscribed", "self_reply", "email_changed",
         "do_not_contact", "wrong_person", "bounced"}
+CALL = re.compile(r"appel|rappel|t[ée]l[ée]phon|m'appeler|rendez-vous|\\brdv\\b|calendly|cr[ée]neau", re.I)
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[a-z]{2,}$", re.I)
 
 BRIEF = {
@@ -111,6 +112,9 @@ def reply_all(api, rows, apply):
         if now - _parse_ts(first_of(r, "latest_sent_at", default="")) < timedelta(hours=24):
             stats["skipped_written_today"] += 1
             continue
+        if str(first_of(r, "lead_status", default="") or "").lower() in ("won", "demo", "lost", "unqualified"):
+            stats["skipped_status"] += 1
+            continue
         cid, pid = first_of(r, "campaign_id"), first_of(r, "person_id")
         sig = "Urbatik"
         try:
@@ -121,6 +125,16 @@ def reply_all(api, rows, apply):
             if mine:
                 sig = str(first_of(mine[-1], "from_first_name", "sender_first_name",
                                    default="") or "Urbatik")
+            theirs = " ".join(str(first_of(m, "body_text", "text", "body", default="") or "")
+                              .split("\nDe :")[0].split("\nFrom:")[0]
+                              for m in msgs if isinstance(m, dict) and m not in mine)
+            # Owner rule: never chase someone who asked for a call or set a meeting.
+            if CALL.search(theirs):
+                stats["skipped_asked_for_call"] += 1
+                continue
+            if re.search(r"relanc|arr[êe]te[zr]? de|ne plus (m'|me )?(é|e)crire|d[ée]sinscri", theirs, re.I):
+                stats["skipped_asked_to_stop"] += 1
+                continue
         except ExpleeError:
             stats["thread_unreadable"] += 1
         first = str(first_of(r, "name", default="") or "").split(" ")[0].title()
