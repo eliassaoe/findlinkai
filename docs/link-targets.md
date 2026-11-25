@@ -260,3 +260,4 @@ Why: 452 keywords left, last 5 runs drafted 16/17/9/23/36 (≈49/day over 7 days
 ## 25 Nov 2026
 - **socialthink.io**: Kristina asked us to go first. Our side placed: "SocialThink" → socialthink.io/ (dofollow) on `/how-to-generate-leads-on-linkedin`, Step 3 (source: `seo_2026_11/pages_c_leads.py`). Verified live, sent her the URL and asked for ours: B2B vs B2C post → `/wiza-alternative`, anchor "wiza alternatives". If theirs isn't live by ~2 Dec, nudge; remove ours if they never place it.
 - kumospace.com: autoresponder, archived.
+- **goodday.work** (25 Nov): placement moved by them to the "Check CRM migration and data compatibility" section of `goodday.work/blog/best-zoho-crm-alternatives/`, anchor "refreshing stale contact records" → `/resources/clean-stale-crm-contact-records`, they publish first. Accepted. **We owe:** GoodDay standalone 2nd-place entry (dofollow to goodday.work) on `/best-software-for-crm` once their link is live.
