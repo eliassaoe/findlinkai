@@ -65,3 +65,13 @@ the dates confirmed: waitlist 23, 25, 28, 29 Nov; sale 30 Nov and 1 Dec. The
 After Cary tests: reset the test code with
 `update appsumo_codes set status='available', user_token=null, redeemed_email=null, redeemed_at=null where batch='infostack-test';`
 and remove the test account's lifetime allowance if needed.
+
+## 25 Nov 2026 — two more tiers (Cary's request, owner said send)
+- `$199` tier: **12,000 credits/month**, batch `infostack-199-2026-11` (250 codes) + `infostack-199-test` (1)
+- `$399` tier: **25,000 credits/month**, batch `infostack-399-2026-11` (250 codes) + `infostack-399-test` (1)
+- Generated with `partner_generate_ltd_codes(250, '<batch>', 'infostack', 'LFIS', <monthly>)`; checked by SHA-256
+  of the sorted code lists against the DB before sending. Sent 25 Nov ~19:50 Paris in the Gmail thread
+  "LinkFinder LTD: Codes, Guarantee and Dates" (codes in the body). Cary needs them to test checkout by Fri 27 Nov.
+- After Cary tests: reset the two test codes the same way as `infostack-test` above.
+- Cost note: 25,000 credits/month for $399 once (we keep ~50%) is below our own lifetime Max ($599 for 25,000),
+  and `ltd_monthly_topup` rolls unused credits over (see Known gap).
