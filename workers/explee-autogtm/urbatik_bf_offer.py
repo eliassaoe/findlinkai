@@ -28,7 +28,7 @@ PROJECT = 61157
 NAME = "Black Friday : 1er dossier offert (contacts qui ont répondu)"
 SKIP = {"not_interested", "recipient_gone", "unsubscribed", "self_reply", "email_changed",
         "do_not_contact", "wrong_person", "bounced"}
-CALL = re.compile(r"appel|rappel|t[ée]l[ée]phon|m'appeler|rendez-vous|\\brdv\\b|calendly|cr[ée]neau", re.I)
+CALL = re.compile(r"appel|rappel|t[ée]l[ée]phon|m'appeler|rendez-vous|\brdv\b|calendly|cr[ée]neau", re.I)
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[a-z]{2,}$", re.I)
 
 BRIEF = {
