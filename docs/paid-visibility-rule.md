@@ -273,3 +273,26 @@ scheme policy, a manual action would hit the whole site's organic traffic) and a
   site would fetch ~$40-80 and $300-500/month would need 6-8 paid links (too risky for SEO). Verification file removed;
   Collaborator offers no delete while in moderation: decline any order that arrives. Next: renegotiate with the people who
   already bought listicle placements from us (~$500) through the owner's professional inbox.
+
+## Renegotiation with past and pending link buyers (26 Nov 2026, support@linkfinderai.com)
+Grid approved by the owner (« les articles top… la visibilité IA, c'est ça qu'il faut vendre ») — goal $300-500/month,
+at most ~4 paid links a month so SEO is not put at risk:
+| Offer | Price |
+| --- | --- |
+| Entry in a "best of" listicle (write-up + 1 dofollow link, permanent) | $200 (2nd entry from the same buyer $150) |
+| Guest post (their article, 1,000+ words, 1 dofollow link) | $150 |
+| Link insertion | $100 |
+| Volume buyer | $100 each, max 3 a month |
+Pitch: DR 42 on Ahrefs + our listicles are what ChatGPT/Perplexity pull from. Never casino, crypto, adult, pharma.
+
+Sent 26 Nov (Paris time; names kept, no other personal data):
+- SignalHire (paid $500 in Sep) 10:28 — 2 new listicle entries at $175 each.
+- Timo / CrowdReply (Byteful, `/best-proxy-providers`, asked "best deal") 11:12 — $200, $150 per extra brand.
+  An 11:11 copy went out garbled (two drafts merged, said $150); the 11:12 email apologises and supersedes it.
+  Lesson: the privateemail editor ignores DOM edits — always type into an empty reply, never edit a saved draft by script.
+- Sam / SearchApi 11:13 — $150 quote of 9 Nov kept, follow-up.
+- Inzamam / Apploye 11:14 — guest post $150 (or listicle $200).
+- mexx john (gmail) 11:14 — guest post $150 (was $250 on 18 Nov), listicle $200.
+- Fatima Anjum (asked $60/$40) 11:15 — $100 each, max 3 a month.
+- Mikaela / emailable.com 11:16 — $200 in `/top-best-marketing-automation-platforms`.
+Skipped: John Muller ($35), Haider Ali ($40). Next: answer replies, invoice before publishing, log each sale here.
