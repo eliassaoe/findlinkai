@@ -201,3 +201,16 @@ Explee reply (429 `reply_rate_limited`, or unsubscribed): phone them.
   by the "Message envoyé" toast. Clicking by coordinates failed silently when the window size changed.
 - Next: answer replies; for 30/day without the browser, the owner creates a Gmail app password and stores it as a GitHub
   secret himself (not in chat), then a workflow can send.
+
+### 26 Nov, afternoon — first reply + import-export / sourcing wave
+- DigitHelp (one of the 29 ad agencies) answered within 7 min: "ok pour en discuter semaine prochaine" → sent the
+  Calendly link `calendly.com/hamoureliasse/offre-linkfinder-ai-outbound` (the page after booking is `/avant-votre-appel`).
+- Owner widened the niche: any import-export / sourcing / international-development firm (finding suppliers in Asia or
+  Europe, setting French brands up abroad, e.g. Eastern Europe), not only "sourcing for brands".
+- Lead search found only 2 real sourcing firms (Asiaction, VVR International) → emailed. Then 32 firms from the OSCI / Le
+  Moci directory of French export-support companies (lemoci.com annuaire PDF, 2020): SAI and development consultancies
+  only; chambers of commerce, law firms and public bodies left out; Eastrategies left out (owner's own example).
+  Mostly contact@/info@ addresses. All 32 sent 26 Nov 14:20–19:55 from hamoureliasse@gmail.com, "Message envoyé" checked.
+- Total today: 29 ad agencies + 34 import-export/sourcing = 63 emails from the owner's Gmail.
+- The test account used for lead search has ~270 credits left; adding credits by SQL was refused by the agent's guard —
+  the owner tops it up himself if more founder emails are needed.
