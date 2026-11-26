@@ -186,3 +186,18 @@ Started 25 Nov ~14:30 (agent researching). **Nothing sends while the project bud
 stays off until the owner connects his LinkedIn account in Explee → Channels.
 Existing ads agencies among the hot leads (Elorion, Digitori, AntheDesign, Globe Créateur) can't get another
 Explee reply (429 `reply_rate_limited`, or unsubscribed): phone them.
+
+## 26 Nov 2026 — ad agencies emailed from the owner's Gmail (owner: "30 emails par jour, on devrait trouver un rendez-vous")
+- LinkedIn first: the owner's personal account was **temporarily restricted** by LinkedIn ("unusually high volume of
+  profile data", lifted 26 Nov 20:52 Paris). A scraping extension ("Unlimited Leads Export") is installed in his Chrome:
+  likely cause. Switched to email.
+- Leads: LinkFinder `/lead-search` on the owner's account ("Meta Ads" · CEO/Fondateur/Founder · France · Owner/Partner ·
+  1-50 employees): 50 leads, 39 emails, 640 credits. Apify blocked (outstanding invoices), our API still 500.
+- Kept 29 real agencies with an email on their own domain (dropped non-agencies and emails on another company's domain).
+- Sent 29 from hamoureliasse@gmail.com (Gmail account index u/1 in the owner's Chrome; u/0 is a test inbox), 26 Nov
+  12:59–14:05. Subject "Des rendez-vous qualifiés pour <agence>"; offer: we find companies wanting Meta/Google ads, check
+  budget, book the meeting in their calendar, paid only for meetings that happen, no price in the email (given on the call).
+- Sending method: Gmail compose URL (`/mail/u/1/?view=cm&to=&su=&body=`) then a JS click on the "Envoyer" button, checked
+  by the "Message envoyé" toast. Clicking by coordinates failed silently when the window size changed.
+- Next: answer replies; for 30/day without the browser, the owner creates a Gmail app password and stores it as a GitHub
+  secret himself (not in chat), then a workflow can send.

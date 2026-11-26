@@ -261,3 +261,10 @@ Why: 452 keywords left, last 5 runs drafted 16/17/9/23/36 (≈49/day over 7 days
 - **socialthink.io**: Kristina asked us to go first. Our side placed: "SocialThink" → socialthink.io/ (dofollow) on `/how-to-generate-leads-on-linkedin`, Step 3 (source: `seo_2026_11/pages_c_leads.py`). Verified live, sent her the URL and asked for ours: B2B vs B2C post → `/wiza-alternative`, anchor "wiza alternatives". If theirs isn't live by ~2 Dec, nudge; remove ours if they never place it.
 - kumospace.com: autoresponder, archived.
 - **goodday.work** (25 Nov): placement moved by them to the "Check CRM migration and data compatibility" section of `goodday.work/blog/best-zoho-crm-alternatives/`, anchor "refreshing stale contact records" → `/resources/clean-stale-crm-contact-records`, they publish first. Accepted. **We owe:** GoodDay standalone 2nd-place entry (dofollow to goodday.work) on `/best-software-for-crm` once their link is live.
+
+## 26 Nov 2026
+- MentionAgent lives at **mentionagent.ai/dashboard** (not .com). businessage.com (DR 66, ~1.6k visits) asked $30 for a
+  link → archived (we don't pay; under the 4k-visit bar).
+- Hackceleration (Romain, via AffiliateFinder): no PartnerStack (vendor contracts ~$9k-38k/yr, demo only), no paid spot
+  (€560-1,110). He offered Softrated (softrated.com, their free directory: dofollow profile + score). Owner: do it.
+  Signup needs an address on our domain (support@linkfinderai.com typed) and a password → **owner types the password**.
