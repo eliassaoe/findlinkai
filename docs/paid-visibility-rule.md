@@ -257,3 +257,15 @@ lifetime value). Total ≈ $50–400 back for ~$100: break-even test, the value 
   UET tag 187299983 now loads for every visitor (commit 48bcab3a) so remarketing lists fill.
   The promo-credit terms sit on the Billing page, which the agent cannot read (screenshots are
   blocked there): the owner reads the spend threshold and deadline himself.
+
+## Selling links: Collaborator.pro listing (26 Nov 2026, owner's call)
+Owner: sell about one dofollow link a month for ~$200 to add a few hundred a month; risk explained (Google link
+scheme policy, a manual action would hit the whole site's organic traffic) and accepted by the owner.
+- Account: Collaborator.pro, owner's Google login (hamoureliasse@gmail.com), switched to Publisher; phone verified by the owner.
+- Site id 996480, ownership via the root file `on8glQhgJHclx_MP4ZZaRHK-wtyk_cLib5uqMsUD.html` (keep it; excluded from the sitemap).
+- Listing: Article format, $200 publishing, buyer supplies the text (our writing disabled), 1 dofollow link, no ad mark,
+  homepage announcement $500, B2B/sales/marketing/SaaS topics only, refused: casino, crypto, forex, loans, CBD, adult,
+  pharma, dating, essays. Placement: `/resources/`. Each order is reviewed by hand.
+- Sent to moderation 26 Nov ~10:30 Paris (2 business days). Their main criterion is 300+ visitors/day; we are at ~150/day
+  (GSC ~4.5k clicks/28 d, mostly India), DR 42 may get the exception.
+- Keep it to about one paid link a month, relevant topics only.
