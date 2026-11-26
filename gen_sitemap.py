@@ -45,7 +45,6 @@ EXCLUDE = {
 # anyone who knows or guesses the URL. Put it behind Cloudflare Access if it
 # needs to be genuinely private.
 NOINDEX_ONLY = {
-    "on8glQhgJHclx_MP4ZZaRHK-wtyk_cLib5uqMsUD",  # collaborator.pro ownership file (26 Nov 2026)
     "gtm-console",
     "autogtm-report",     # written by workers/explee-autogtm/report_page.py every run
     "relance",            # hot-lead follow-up cockpit, encrypted; workers/explee-autogtm/relance_page.py

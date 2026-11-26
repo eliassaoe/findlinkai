@@ -269,3 +269,7 @@ scheme policy, a manual action would hit the whole site's organic traffic) and a
 - Sent to moderation 26 Nov ~10:30 Paris (2 business days). Their main criterion is 300+ visitors/day; we are at ~150/day
   (GSC ~4.5k clicks/28 d, mostly India), DR 42 may get the exception.
 - Keep it to about one paid link a month, relevant topics only.
+- **26 Nov ~10:25: abandoned by the owner.** Market check on Adsy: DR 60-80 sites sell guest posts for $40-150, so a DR 42
+  site would fetch ~$40-80 and $300-500/month would need 6-8 paid links (too risky for SEO). Verification file removed;
+  Collaborator offers no delete while in moderation: decline any order that arrives. Next: renegotiate with the people who
+  already bought listicle placements from us (~$500) through the owner's professional inbox.
