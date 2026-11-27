@@ -563,3 +563,20 @@ and to the Black Friday email, create their utm link, send them our copy.
   27 Nov 15:06 Delon: "live by tomorrow morning", asked for deal details, newsletter copy, social copy and a banner.
   Sent all of it 17:10 Paris (prices from `ltd_public_state`: Core $149 first 50 then $179, Plus $299, Agency $599 first 10 then $699;
   ends 1 Dec 07:59 UTC = 30 Nov 11:59 PM PT). Banner: `/images/black-friday/linkfinder-ai-black-friday-lifetime-deal.png` (1200x675).
+
+## 27 Nov, 17:15 Paris — why 0 sales, and what changed
+
+- Sends today: warm 1,428 sent / 1,395 delivered / 198 opened (14%) / 21 clicks / 38 opt-outs;
+  cold 857 / 838 / 82 (10%) / 16 / 16. So ~37 clicks for 2,285 emails.
+- `/lifetime-deal` today: 17 views, 13 visitors (some are Outlook link scanners: the
+  "Object Not Found Matching Id" `$exception`s). **0 `ltd_checkout_clicked`, 0 `ltd_login_clicked`.**
+  `ltd_sales` = 0. The one `ltd_purchased` event (26 Nov 03:20) is the InfoStack code redemption.
+- Verdict: the funnel is too small at the top (low open rate on free accounts) and the page
+  asked visitors without a session to log in first. **Gate removed** (f34d3a5e): buttons go straight
+  to Dodo; n8n matches on `customer.email` when there is no token.
+- New workflow `01a21dc8-1c81-0000-b918-3a0aaff905f5` "Sat 28 'no login needed'", cohort **765636**
+  (752297 ∪ 752298), 2,382 people, enabled, **not dispatched**: waits for the owner's OK on the count.
+- InfoStack (Cary): tiers $99/5k, $199/12k, $399/25k; 1,002 codes out (500+250+250+tests),
+  1 redeemed. Sale live 30 Nov–1 Dec on infostack.io/deal/linkfinder. Asked Cary for waitlist size
+  and sales, 27 Nov 17:10.
+- Real email throughput today: 500–860 sends/hour (the "62/h" in blast-radius is not what happened).
