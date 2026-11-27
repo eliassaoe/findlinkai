@@ -289,3 +289,18 @@ Sources: [Pharow pricing](https://www.pharow.com/tarifs) ·
 [FullEnrich](https://fullenrich.com/blog/waterfall-enrichment) ·
 [Cognism vs Apollo](https://www.cognism.com/cognism-vs-apollo-io) ·
 [Salesdorado comparatif](https://salesdorado.com/fichiers-prospection/comparatif-bases-de-donnees-b2b/)
+
+## 27 Nov 2026 — signal sources for client campaigns (owner: "use an existing tool, don't build")
+Why: leptitlogiciel.fr (Explee project 39965) is at 42,979 emails, 0.8% reply, 22 hot leads, $1,719 = **$78 per hot
+lead**; the ICP is nearly tapped (~65k people already in the project, the last refill found 1,736 net-new vs 20,000
+asked). Replies are mostly out-of-office / "on a déjà un ERP" / not interested.
+- **Rodz** (rodz.io, Nantes): 46 signals incl. job postings (LinkedIn, Indeed, WTTJ, French boards), hiring campaigns,
+  company growth, new Google Maps establishments, company creations, public tenders. Each lead comes with the decision
+  maker + email. Delivery: webhook / REST API / MCP (no native Explee → a small webhook → Explee import bridge).
+  Price: 0.5-12 credits per lead depending on the signal, packs 500-51,000 credits, €0.10/credit at 500 (€50), down to
+  ~€0.05 at volume; never charged for a lead outside the filters; credits don't expire. API access is for agencies and
+  software vendors on application: **applied 27 Nov 12:10 as an outbound agency** (support@linkfinderai.com, 5 clients,
+  ~1,000 leads/month, first use case = leptitlogiciel job-posting signal: deviseur, chiffreur, planificateur,
+  ordonnanceur, ADV in industrial SMEs 20-250). They email back to create the account.
+- Alternatives checked: Mantiks (job postings, €99/mo, annual), Decidento (company projects: investment, expansion,
+  new sites — best fit for CEE; demo only, export, no API), Pharow (filters, not a feed), Trigify (closing 22 Oct 2026).
