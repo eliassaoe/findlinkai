@@ -272,3 +272,8 @@ Why: 452 keywords left, last 5 runs drafted 16/17/9/23/36 (≈49/day over 7 days
   `/best-b2b-data-providers`, their partner stopped updating). Link removed (entry kept, unlinked, schema url dropped).
   They will send a replacement request (Google Doc); Elastic Email is no longer in their network, so our side of that
   swap needs another site from them.
+- 27 Nov: **oneup.today** (Chaitanya) — no BF deal; accepted the 2nd swap we proposed in September. Our side placed:
+  "Also worth a look: OneUp Today" section (dofollow → oneup.today, anchor "OneUp Today") at the end of
+  `/best-lead-generation-tools`. Theirs: LinkFinder AI's LinkedIn email finder in oneup.today/best-cold-dm-tools — check it.
+- 27 Nov: **automationflow.at** (Maksym) — we still owe the newsletter mention (his UTM link is in the thread). Promised for
+  "our next email to users, week of 7 December". Note: their site shows ~3 visits/month in MentionAgent.
