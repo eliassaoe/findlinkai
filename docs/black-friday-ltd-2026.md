@@ -548,3 +548,15 @@ instantdm, saascrmreview, outlierkit, ecomify, aureliatalent, laratranslate, nud
 Skipped: sites under ~200 visits/month, mailmodo (paid), work-management (archived).
 **When a partner says yes:** add their deal to a "Deals from our partners" section on `/lifetime-deal`
 and to the Black Friday email, create their utm link, send them our copy.
+
+## 27 Nov 2026 — emails dispatched (owner: "envoie à fond")
+- The warm sequence had never been sent (still draft). Owner confirmed sending on 27 Nov ~11:05 Paris.
+- Warm `01a20927` (cohort 752297, **1,492**): cut to 2 emails — "Black Friday: LinkFinder AI for life, paid once" at dispatch,
+  then "last call: the Black Friday deal closes Monday night" (+2d). Early-access, math and use-cases emails removed.
+- Cold `01a1cbcf` (cohort 752298, **890**): offer at dispatch, last call at +2d (was +3d, "closes tonight").
+- Why shorter: the project sends at most **62 emails/hour** (blast radius), so ~2,400 first emails take ~38 h; a 5-email
+  sequence would have landed after the deal closes. Last-call copy says "closes Monday 30 Nov at midnight, Pacific".
+- Both enabled and dispatched 10:06 UTC. 31 sent in the first hour. Win-back `01a1cc36` NOT sent (past customers are in warm).
+- No $149 test purchase has been made yet (0 rows in ltd_sales): the n8n fulfilment has never processed a real LTD payment.
+- SaaS Pirate (Delon, paid $129 on 11 Nov for newsletter + 27 Nov roundup + socials): followed up 27 Nov for the live links;
+  no `utm_source=saaspirate` visit yet at 11:30 Paris.
