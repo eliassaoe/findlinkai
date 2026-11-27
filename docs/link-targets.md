@@ -268,15 +268,12 @@ Why: 452 keywords left, last 5 runs drafted 16/17/9/23/36 (≈49/day over 7 days
 - Hackceleration (Romain, via AffiliateFinder): no PartnerStack (vendor contracts ~$9k-38k/yr, demo only), no paid spot
   (€560-1,110). He offered Softrated (softrated.com, their free directory: dofollow profile + score). Owner: do it.
   Signup needs an address on our domain (support@linkfinderai.com typed) and a password → **owner types the password**.
-<<<<<<< HEAD
-- 27 Nov: Saleshandy (Dhruv) asked to remove the last link they placed with us (BookYourData on
-  `/best-b2b-data-providers`, their partner stopped updating). Link removed (entry kept, unlinked, schema url dropped).
-  They will send a replacement request (Google Doc); Elastic Email is no longer in their network, so our side of that
-  swap needs another site from them.
+- 27 Nov: Saleshandy (Dhruv) asked to "remove the last link I shared" and sent a Google Doc as the replacement request.
+  The doc IS the BookYourData entry (top 3 on `/best-b2b-data-providers`, already live at #3), so BookYourData stays.
+  It was unlinked by mistake for ~1 h, then restored. Asked him which link to remove. Elastic Email is no longer in
+  their network, so our side of that swap needs another site from them.
 - 27 Nov: **oneup.today** (Chaitanya) — no BF deal; accepted the 2nd swap we proposed in September. Our side placed:
   "Also worth a look: OneUp Today" section (dofollow → oneup.today, anchor "OneUp Today") at the end of
   `/best-lead-generation-tools`. Theirs: LinkFinder AI's LinkedIn email finder in oneup.today/best-cold-dm-tools — check it.
 - 27 Nov: **automationflow.at** (Maksym) — we still owe the newsletter mention (his UTM link is in the thread). Promised for
   "our next email to users, week of 7 December". Note: their site shows ~3 visits/month in MentionAgent.
-=======
->>>>>>> parent of 8b9e76c3 (Unlink BookYourData on best-b2b-data-providers at Saleshandy's request)
