@@ -560,3 +560,6 @@ and to the Black Friday email, create their utm link, send them our copy.
 - No $149 test purchase has been made yet (0 rows in ltd_sales): the n8n fulfilment has never processed a real LTD payment.
 - SaaS Pirate (Delon, paid $129 on 11 Nov for newsletter + 27 Nov roundup + socials): followed up 27 Nov for the live links;
   no `utm_source=saaspirate` visit yet at 11:30 Paris.
+  27 Nov 15:06 Delon: "live by tomorrow morning", asked for deal details, newsletter copy, social copy and a banner.
+  Sent all of it 17:10 Paris (prices from `ltd_public_state`: Core $149 first 50 then $179, Plus $299, Agency $599 first 10 then $699;
+  ends 1 Dec 07:59 UTC = 30 Nov 11:59 PM PT). Banner: `/images/black-friday/linkfinder-ai-black-friday-lifetime-deal.png` (1200x675).
