@@ -382,3 +382,16 @@ Notes:
 - Name → profile would need a company-name → domain step first (we have `company_name_to_website`).
 Verdict: add reverse-email-lookup as step 2 of email → LinkedIn (cheap, +21% on misses). Phone: marginal on our
 traffic; worth adding only as a last fallback since misses are free. Name → profile: test only after a domain step.
+
+### Wired into n8n "linkfinder ai app v 4" (LntSghdJrXAAFYmr), 28 Nov 2026 — saved as draft, owner publishes
+Owner: add reverse-email-lookup and linkedin-to-phone ("on ne paie que les numéros trouvés").
+Saved with a REST PATCH of the workflow (draft versionId d61b1e09…; the live version 65ed0f17… is unchanged until Publish).
+- **Email → LinkedIn:** `Apify Found?3` (false) → `RE b2b: reverse email` (b2bsearch~reverse-email-lookup, `compact: true`)
+  → `RE b2b: pick` (first `_status = found` row with `profileUrl`, rejected when `_matchCandidates` > 1)
+  → `RE b2b: found?` → `Respond to Webhook74` (found) / `ETL Respond Not Found1` (refund, as before).
+- **LinkedIn → phone:** the two paths that ended in `Respond to Webhook78` (`If50` false, `If Valid Format [2]3` false)
+  → `PH b2b: linkedin-to-phone` → `PH b2b: pick` (`primaryPhone` or `phones[0]`) → `PH b2b: found?`
+  → `Respond to Webhook77` (found) / `Respond to Webhook78` (refund, as before). Numbers come back as +1… (E.164).
+- Both HTTP nodes reuse the `apify api key` credential, `onError: continueRegularOutput`, timeout 60 s, so an Apify
+  failure falls through to the old not-found answer. No "outstanding invoices" error in the last 100 executions.
+- Rollback: n8n version history, the version before 28 Nov ("65ed0f17…").
