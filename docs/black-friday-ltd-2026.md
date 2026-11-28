@@ -580,3 +580,12 @@ and to the Black Friday email, create their utm link, send them our copy.
   1 redeemed. Sale live 30 Nov–1 Dec on infostack.io/deal/linkfinder. Asked Cary for waitlist size
   and sales, 27 Nov 17:10.
 - Real email throughput today: 500–860 sends/hour (the "62/h" in blast-radius is not what happened).
+
+## 28 Nov, 10:00 Paris — read-out after SaaS Pirate's send
+
+- Delon (SaaS Pirate) says the newsletter went to ~30,000 subscribers, plus a social post and a blog post.
+- `ltd_page_viewed` with `utm_source=saaspirate`: 3 visitors on 27 Nov, 12 on 28 Nov by 10:00
+  (mostly facebook.com and m.facebook.com, i.e. the social post; 1 from saasblackfriday.online).
+  Since 27 Nov the page has had 34 visitors in total. 0 `ltd_checkout_clicked`, 0 sales in `ltd_sales`.
+- Codes: InfoStack 1 redeemed out of 1,002 (26 Nov 03:20); their sale only opens on 30 Nov.
+  AppSumo: 2 real codes redeemed (6 and 10 Nov) + 2 test.

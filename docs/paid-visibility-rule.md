@@ -295,6 +295,7 @@ Sent 26 Nov (Paris time; names kept, no other personal data):
 - mexx john (gmail) 11:14 — guest post $150 (was $250 on 18 Nov), listicle $200.
 - Fatima Anjum (asked $60/$40) 11:15 — $100 each, max 3 a month.
 - Mikaela / emailable.com 11:16 — $200 in `/top-best-marketing-automation-platforms`.
+- Eric / Evomi (proxy provider, eric@ a third-party domain) 28 Nov 10:05 Paris — asked for row 14 on `/best-proxy-providers`; quoted $200 listicle entry ($150 second brand), invoice first, live within 48h of payment.
 Skipped: John Muller ($35), Haider Ali ($40). Next: answer replies, invoice before publishing, log each sale here.
 - 26 Nov 11:51: Fatima held at $60 / $40 ("our client has a fixed budget") → declined, $100 floor left open.
   She is a reseller: no sale below $100, the monthly paid-link quota goes to direct brands first.
