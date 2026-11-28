@@ -359,3 +359,26 @@ got at the time (`enrichment_history`). Results kept outside the repo.
   finds, 3 lost. The new finds were not hand-checked for being the right person.
 - Email → LinkedIn (1,001 inputs, 39% then) and phone were not re-run. Phone
   waits until its pipeline changes.
+
+## b2bsearch actors tested on our own misses (28 Nov 2026)
+
+Owner's method: take lookups that came back empty in `enrichment_history`, send them to the new actor,
+count what it finds. Runs made from the owner's Apify console ("unli" account); the Apify MCP account is
+blocked ("Too many outstanding invoices"). No personal data in this file, only counts.
+
+| Actor | Our misses sent | Found | Extra find rate on misses | Cost of the run | Price per find |
+| --- | --- | --- | --- | --- | --- |
+| `b2bsearch/reverse-email-lookup` (email → LinkedIn) | 90 (last 60 d, distinct, valid emails) | **19** | **21%** | $0.06 | $0.0032 (summary) |
+| `b2bsearch/linkedin-to-phone` (LinkedIn → mobile) | 68 (since 1 Sep, distinct, bulk week of 5 Oct excluded) | **2** | 3% | $0.02 | $0.012 ($0.018 from 8 Dec) |
+| `b2bsearch/company-employees` (domain → employees) | already step 1 of the employee waterfall since 7 Nov | — | — | — | — |
+| `b2bsearch/name-to-profile` (name + **domain** → LinkedIn) | not run: our name lookups carry a company *name*, never a domain (0 of 1,447 misses) | — | — | — | $0.0032 |
+
+Notes:
+- Reverse email: hits are work emails (company domains); gmail/hotmail/aol misses stay misses. Spot-checked rows
+  match (name + employer consistent with the email domain). One row carried 4 "possible matches" (a university
+  address matched to someone at another company): drop rows with `_matchCandidates` > 1.
+- Phone misses are mostly non-US (Brazil, India, Indonesia); the actor is US-centric ("~1 in 4 US decision makers").
+  On US profiles it may do better; current phone find rate last 30 days: 8 of 73.
+- Name → profile would need a company-name → domain step first (we have `company_name_to_website`).
+Verdict: add reverse-email-lookup as step 2 of email → LinkedIn (cheap, +21% on misses). Phone: marginal on our
+traffic; worth adding only as a last fallback since misses are free. Name → profile: test only after a domain step.
