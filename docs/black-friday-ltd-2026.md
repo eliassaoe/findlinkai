@@ -589,3 +589,9 @@ and to the Black Friday email, create their utm link, send them our copy.
   Since 27 Nov the page has had 34 visitors in total. 0 `ltd_checkout_clicked`, 0 sales in `ltd_sales`.
 - Codes: InfoStack 1 redeemed out of 1,002 (26 Nov 03:20); their sale only opens on 30 Nov.
   AppSumo: 2 real codes redeemed (6 and 10 Nov) + 2 test.
+- 28 Nov 10:10: owner rejected the "no login needed" email; workflow `01a21dc8` archived, never sent.
+  Deadline emails already scheduled: warm "last call" Sun 29 ~10:06 UTC (1,428 people),
+  cold "last day" Mon 30 (+3d, ~857 people). Nothing extra added.
+- OutlierKit (Aditi, MentionAgent): yes to a cross-promo. Their BFCM40 deal (40% off, through 5 Dec) is on
+  the new `/black-friday-deals` page; sent them our copy, banner and tracked link
+  `utm_source=outlierkit&utm_medium=partner`; asked for a newsletter swap (their list size and next send).
